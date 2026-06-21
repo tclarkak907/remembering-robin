@@ -1,13 +1,9 @@
 const gallery = document.querySelector("#gallery");
-const loadMoreButton = document.querySelector("#load-more");
-const chapterStrip = document.querySelector("#chapter-strip");
 const lightbox = document.querySelector("#lightbox");
 const lightboxImage = lightbox.querySelector("img");
 
 let galleryItems = [];
-let visibleCount = 0;
 let activePhoto = 0;
-const batchSize = 28;
 
 async function loadJson(path) {
   const response = await fetch(path);
@@ -15,12 +11,10 @@ async function loadJson(path) {
   return response.json();
 }
 
-function addGalleryBatch() {
-  const nextItems = galleryItems.slice(visibleCount, visibleCount + batchSize);
+function renderGallery() {
   const fragment = document.createDocumentFragment();
 
-  nextItems.forEach((item, offset) => {
-    const index = visibleCount + offset;
+  galleryItems.forEach((item, index) => {
     const button = document.createElement("button");
     const image = document.createElement("img");
 
@@ -40,8 +34,6 @@ function addGalleryBatch() {
   });
 
   gallery.append(fragment);
-  visibleCount += nextItems.length;
-  loadMoreButton.hidden = visibleCount >= galleryItems.length;
 }
 
 function openLightbox(index) {
@@ -58,28 +50,10 @@ function moveLightbox(direction) {
 }
 
 async function initialize() {
-  const [photos, themes] = await Promise.all([
-    loadJson("assets/gallery.json"),
-    loadJson("assets/themes.json"),
-  ]);
-
-  galleryItems = photos;
-  addGalleryBatch();
-
-  themes.slice(0, 8).forEach((theme) => {
-    const figure = document.createElement("figure");
-    const image = document.createElement("img");
-    image.src = theme.src;
-    image.alt = theme.alt;
-    image.loading = "lazy";
-    image.width = theme.width;
-    image.height = theme.height;
-    figure.append(image);
-    chapterStrip.append(figure);
-  });
+  galleryItems = await loadJson("assets/gallery.json");
+  renderGallery();
 }
 
-loadMoreButton.addEventListener("click", addGalleryBatch);
 lightbox.querySelector(".lightbox-close").addEventListener("click", () => lightbox.close());
 lightbox.querySelector(".previous").addEventListener("click", () => moveLightbox(-1));
 lightbox.querySelector(".next").addEventListener("click", () => moveLightbox(1));
@@ -95,5 +69,5 @@ document.addEventListener("keydown", (event) => {
 });
 
 initialize().catch(() => {
-  loadMoreButton.hidden = true;
+  gallery.setAttribute("aria-label", "The photo gallery could not be loaded.");
 });
